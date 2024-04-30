@@ -1,106 +1,166 @@
-#include<bits/stdc++.h>
-
+#include <iostream>
+#include <vector>
+#include <limits>
+ 
 using namespace std;
-
-// Function to print the tic-tac-toe board
-void displayBoard(const vector<vector<char>>& gameBoard) {
-    cout << "-------------" << endl;
-    for (int i = 0; i < 3; ++i) {
-        cout << "| ";
-        for (int j = 0; j < 3; ++j) {
-            cout << gameBoard[i][j] << " | ";
+ 
+const int SIZE = 3;
+const char EMPTY = ' ';
+const char HUMAN = 'X';
+const char AI = 'O';
+ 
+// Function to print the Tic Tac Toe board
+void printBoard(const vector<vector<char>>& board) {
+    for (const auto& row : board) {
+        for (char cell : row) {
+            cout << cell << " | ";
         }
-        cout << endl << "-------------" << endl;
+        cout << endl << "---------" << endl;
     }
 }
-
-// Function to check if there is a winner
-char checkWinner(const vector<vector<char>>& gameBoard) {
-    // Check rows
-    for (int i = 0; i < 3; ++i) {
-        if (gameBoard[i][0] == gameBoard[i][1] && gameBoard[i][1] == gameBoard[i][2] && gameBoard[i][0] != ' ') {
-            return gameBoard[i][0];
+ 
+// Function to check if the game is over
+bool gameOver(const vector<vector<char>>& board) {
+    // Check rows, columns, and diagonals
+    for (int i = 0; i < SIZE; ++i) {
+        if (board[i][0] != EMPTY && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
+            return true; // Row i
+        }
+        if (board[0][i] != EMPTY && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
+            return true; // Column i
         }
     }
-    // Check columns
-    for (int i = 0; i < 3; ++i) {
-        if (gameBoard[0][i] == gameBoard[1][i] && gameBoard[1][i] == gameBoard[2][i] && gameBoard[0][i] != ' ') {
-            return gameBoard[0][i];
-        }
+    if (board[0][0] != EMPTY && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
+        return true; // Diagonal top-left to bottom-right
     }
-    // Check diagonals
-    if (gameBoard[0][0] == gameBoard[1][1] && gameBoard[1][1] == gameBoard[2][2] && gameBoard[0][0] != ' ') {
-        return gameBoard[0][0];
+    if (board[0][2] != EMPTY && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
+        return true; // Diagonal top-right to bottom-left
     }
-    if (gameBoard[0][2] == gameBoard[1][1] && gameBoard[1][1] == gameBoard[2][0] && gameBoard[0][2] != ' ') {
-        return gameBoard[0][2];
-    }
-    // If no winner, return ' '
-    return ' ';
-}
-
-// Function to check if the board is full
-bool isBoardFull(const vector<vector<char>>& gameBoard) {
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            if (gameBoard[i][j] == ' ') {
-                return false; // There is an empty cell, board is not full
+    // Check if board is full
+    for (const auto& row : board) {
+        for (char cell : row) {
+            if (cell == EMPTY) {
+                return false;
             }
         }
     }
-    return true; // No empty cell, board is full
+    return true;
 }
-
-// Function to perform player's move
-void playerMove(vector<vector<char>>& gameBoard) {
-    int row, col;
-    cout << "Enter row and column (1-3): ";
-    cin >> row >> col;
-    row--; // Adjust to 0-based indexing
-    col--; // Adjust to 0-based indexing
-    if (row >= 0 && row < 3 && col >= 0 && col < 3 && gameBoard[row][col] == ' ') {
-        gameBoard[row][col] = 'X';
+ 
+// Function to evaluate the current board state
+int evaluateBoard(const vector<vector<char>>& board) {
+    // Check rows, columns, and diagonals for a win
+    for (int i = 0; i < SIZE; ++i) {
+        if (board[i][0] != EMPTY && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
+            return (board[i][0] == AI) ? 10 : -10; // Row i
+        }
+        if (board[0][i] != EMPTY && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
+            return (board[0][i] == AI) ? 10 : -10; // Column i
+        }
+    }
+    if (board[0][0] != EMPTY && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
+        return (board[0][0] == AI) ? 10 : -10; // Diagonal top-left to bottom-right
+    }
+    if (board[0][2] != EMPTY && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
+        return (board[0][2] == AI) ? 10 : -10; // Diagonal top-right to bottom-left
+    }
+    return 0; // No winner
+}
+ 
+// Minimax algorithm with alpha-beta pruning
+int minimax(vector<vector<char>>& board, int depth, bool isMaximizer, int alpha, int beta) {
+    if (gameOver(board)) {
+        return evaluateBoard(board);
+    }
+ 
+    if (isMaximizer) {
+        int bestScore = numeric_limits<int>::min();
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                if (board[i][j] == EMPTY) {
+                    board[i][j] = AI;
+                    bestScore = max(bestScore, minimax(board, depth + 1, !isMaximizer, alpha, beta));
+                    alpha = max(alpha, bestScore);
+                    board[i][j] = EMPTY;
+                    if (beta <= alpha) {
+                        break;
+                    }
+                }
+            }
+        }
+        return bestScore;
     } else {
-        cout << "Invalid move. Try again." << endl;
-        playerMove(gameBoard);
+        int bestScore = numeric_limits<int>::max();
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                if (board[i][j] == EMPTY) {
+                    board[i][j] = HUMAN;
+                    bestScore = min(bestScore, minimax(board, depth + 1, !isMaximizer, alpha, beta));
+                    beta = min(beta, bestScore);
+                    board[i][j] = EMPTY;
+                    if (beta <= alpha) {
+                        break;
+                    }
+                }
+            }
+        }
+        return bestScore;
     }
 }
-
-// Function to perform computer's move
-void computerMove(vector<vector<char>>& gameBoard) {
-    srand(time(0));
-    int row, col;
-    do {
-        row = rand() % 3;
-        col = rand() % 3;
-    } while (gameBoard[row][col] != ' ');
-    gameBoard[row][col] = 'O';
+ 
+// Function for computer's move
+pair<int, int> computerMove(vector<vector<char>>& board) {
+    int bestScore = numeric_limits<int>::min();
+    pair<int, int> move;
+    for (int i = 0; i < SIZE; ++i) {
+        for (int j = 0; j < SIZE; ++j) {
+            if (board[i][j] == EMPTY) {
+                board[i][j] = AI;
+                int score = minimax(board, 0, false, numeric_limits<int>::min(), numeric_limits<int>::max());
+                board[i][j] = EMPTY;
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = make_pair(i, j);
+                }
+            }
+        }
+    }
+    return move;
 }
-
+ 
 int main() {
-    vector<vector<char>> gameBoard(3, vector<char>(3, ' ')); // Initialize an empty 3x3 board
-
-    while (true) {
-        displayBoard(gameBoard);
-        playerMove(gameBoard);
-        if (checkWinner(gameBoard) == 'X') {
-            cout << "Congratulations! You win!" << endl;
-            break;
-        }
-        if (isBoardFull(gameBoard)) {
-            cout << "It's a draw!" << endl;
-            break;
-        }
-        computerMove(gameBoard);
-        if (checkWinner(gameBoard) == 'O') {
-            cout << "Computer wins!" << endl;
-            break;
-        }
-        if (isBoardFull(gameBoard)) {
-            cout << "It's a draw!" << endl;
-            break;
+    vector<vector<char>> board(SIZE, vector<char>(SIZE, EMPTY)); // Initialize empty board
+ 
+    bool playerTurn = true; // Player starts first
+ 
+    while (!gameOver(board)) {
+        if (playerTurn) {
+            printBoard(board);
+            int row, col;
+            cout << "Enter your move (row col): ";
+            cin >> row >> col;
+            if (row >= 0 && row < SIZE && col >= 0 && col < SIZE && board[row][col] == EMPTY) {
+                board[row][col] = HUMAN;
+                playerTurn = false;
+            } else {
+                cout << "Invalid move! Try again." << endl;
+            }
+        } else {
+            pair<int, int> move = computerMove(board);
+            board[move.first][move.second] = AI;
+            playerTurn = true;
         }
     }
-    
+ 
+    printBoard(board);
+ 
+    if (evaluateBoard(board) == 10) {
+        cout << "AI wins!" << endl;
+    } else if (evaluateBoard(board) == -10) {
+        cout << "You win!" << endl;
+    } else {
+        cout << "It's a draw!" << endl;
+    }
+ 
     return 0;
 }
